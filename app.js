@@ -2,6 +2,62 @@
 function getStorage(key, fallback) { return JSON.parse(localStorage.getItem(key)) || fallback; }
 function setStorage(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
+// ---- Anagrafica clienti ----
+let clientiAnagrafica = getStorage('clientiAnagrafica', []);
+function saveClienteAnagrafica(nome, telefono, email) {
+  if (!clientiAnagrafica.find(c => c.nome === nome)) {
+    clientiAnagrafica.push({nome, telefono, email});
+    setStorage('clientiAnagrafica', clientiAnagrafica);
+  }
+}
+function renderClientiDropdown() {
+  const select = document.getElementById('cliente-dropdown');
+  select.innerHTML = '<option value="">Seleziona cliente</option>';
+  clientiAnagrafica.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.nome;
+    opt.textContent = `${c.nome}${c.telefono ? ' ('+c.telefono+')' : ''}`;
+    select.appendChild(opt);
+  });
+}
+function renderListaClienti() {
+  const ul = document.getElementById('lista-clienti');
+  ul.innerHTML = '';
+  clientiAnagrafica.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<b>${c.nome}</b> ${c.telefono || ''} ${c.email || ''}`;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑️';
+    delBtn.onclick = () => {
+      clientiAnagrafica.splice(i, 1);
+      setStorage('clientiAnagrafica', clientiAnagrafica);
+      renderListaClienti();
+      renderClientiDropdown();
+    };
+    li.appendChild(delBtn);
+    ul.appendChild(li);
+  });
+}
+document.getElementById('gestisci-clienti-btn').addEventListener('click', () => {
+  document.getElementById('clienti').style.display = '';
+  renderListaClienti();
+});
+document.getElementById('chiudi-clienti-btn').addEventListener('click', () => {
+  document.getElementById('clienti').style.display = 'none';
+});
+document.getElementById('cliente-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const nome = document.getElementById('nome-cliente').value.trim();
+  const telefono = document.getElementById('telefono-cliente').value.trim();
+  const email = document.getElementById('email-cliente').value.trim();
+  if (nome) {
+    saveClienteAnagrafica(nome, telefono, email);
+    renderListaClienti();
+    renderClientiDropdown();
+    e.target.reset();
+  }
+});
+
 // ---- Progetti/Rilievi ----
 let progetti = getStorage('progetti', []);
 let progettoAttivoId = localStorage.getItem('progettoAttivoId') || null;
@@ -9,9 +65,11 @@ function creaProgetto(nome) {
   const nuovo = {
     id: Date.now().toString(),
     nome: nome || `Rilievo ${progetti.length+1}`,
-    clienti: [],
+    cliente: null,
+    cantiere: '',
     misure: [],
-    tipologie: []
+    tipologie: [],
+    sensiApertura: []
   };
   progetti.push(nuovo);
   setStorage('progetti', progetti);
@@ -61,29 +119,19 @@ document.getElementById('delete-progetto-btn').addEventListener('click', functio
   if (progettoAttivoId) eliminaProgetto(progettoAttivoId);
 });
 
-// ---- Clienti & Cantieri ----
-function renderClienti() {
-  const ul = document.getElementById('lista-clienti');
-  ul.innerHTML = '';
-  const progetto = getProgettoAttivo();
-  if (!progetto) return;
-  progetto.clienti.forEach((c, i) => {
-    const li = document.createElement('li');
-    li.textContent = `${c.nome} - ${c.cantiere}`;
-    ul.appendChild(li);
-  });
-}
-document.getElementById('cliente-form').addEventListener('submit', e => {
+// ---- Cliente/Cantiere per progetto ----
+document.getElementById('cliente-cantiere-form').addEventListener('submit', e => {
   e.preventDefault();
   const progetto = getProgettoAttivo();
   if (!progetto) return;
-  const nome = document.getElementById('nome-cliente').value.trim();
-  const cantiere = document.getElementById('nome-cantiere').value.trim();
-  if (nome && cantiere) {
-    progetto.clienti.push({nome, cantiere});
+  const cliente = document.getElementById('cliente-dropdown').value;
+  const cantiere = document.getElementById('cantiere').value.trim();
+  if (cliente && cantiere) {
+    progetto.cliente = cliente;
+    progetto.cantiere = cantiere;
     setStorage('progetti', progetti);
-    renderClienti();
     e.target.reset();
+    aggiornaTutto();
   }
 });
 
@@ -93,7 +141,8 @@ function renderTipologieSelect() {
   select.innerHTML = '<option value="">Seleziona tipologia</option>';
   const progetto = getProgettoAttivo();
   if (!progetto) return;
-  progetto.tipologie.forEach(t => {
+  let tipologie = progetto.tipologie.length ? progetto.tipologie : getStorage('tipologieGlobali', []);
+  tipologie.forEach(t => {
     const opt = document.createElement('option');
     opt.value = t;
     opt.textContent = t;
@@ -112,7 +161,8 @@ function renderListaTipologie() {
   ul.innerHTML = '';
   const progetto = getProgettoAttivo();
   if (!progetto) return;
-  progetto.tipologie.forEach((t, i) => {
+  let tipologie = progetto.tipologie;
+  tipologie.forEach((t, i) => {
     const li = document.createElement('li');
     li.textContent = t;
     const delBtn = document.createElement('button');
@@ -143,6 +193,77 @@ document.getElementById('tipologia-form').addEventListener('submit', e => {
   }
 });
 
+// ---- Sensi di Apertura ----
+let sensiAperturaGlobali = getStorage('sensiAperturaGlobali', [
+  "Dx a tirare", "Sx a tirare", "Dx a spingere", "Sx a spingere",
+  "Scorrere verso Dx", "Scorrere verso Sx", "Dx Anta Ribalta", "Wasistas"
+]);
+function renderSensiDropdown() {
+  const select = document.getElementById('senso-apertura');
+  select.innerHTML = '<option value="">Seleziona senso apertura</option>';
+  const progetto = getProgettoAttivo();
+  let sensi = progetto && progetto.sensiApertura.length ? progetto.sensiApertura : sensiAperturaGlobali;
+  sensi.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    select.appendChild(opt);
+  });
+}
+function apriGestioneSensi() {
+  document.getElementById('sensi').style.display = '';
+  renderListaSensi();
+}
+function chiudiGestioneSensi() {
+  document.getElementById('sensi').style.display = 'none';
+}
+function renderListaSensi() {
+  const ul = document.getElementById('lista-sensi');
+  ul.innerHTML = '';
+  const progetto = getProgettoAttivo();
+  let sensi = progetto ? progetto.sensiApertura : sensiAperturaGlobali;
+  sensi.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.textContent = s;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑️';
+    delBtn.onclick = () => {
+      sensi.splice(i, 1);
+      if (progetto) setStorage('progetti', progetti);
+      else setStorage('sensiAperturaGlobali', sensiAperturaGlobali);
+      renderListaSensi();
+      renderSensiDropdown();
+    };
+    li.appendChild(delBtn);
+    ul.appendChild(li);
+  });
+}
+document.getElementById('gestisci-sensi-btn').addEventListener('click', apriGestioneSensi);
+document.getElementById('chiudi-sensi-btn').addEventListener('click', chiudiGestioneSensi);
+document.getElementById('senso-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const progetto = getProgettoAttivo();
+  let sensi = progetto ? progetto.sensiApertura : sensiAperturaGlobali;
+  const nuovo = document.getElementById('nuovo-senso').value.trim();
+  if (nuovo && !sensi.includes(nuovo)) {
+    sensi.push(nuovo);
+    if (progetto) setStorage('progetti', progetti);
+    else setStorage('sensiAperturaGlobali', sensiAperturaGlobali);
+    renderListaSensi();
+    renderSensiDropdown();
+    e.target.reset();
+  }
+});
+
+// ---- Memorizzazione/suggerimento valori inseriti ----
+function getSuggerimenti(field, progetto) {
+  let values = [];
+  if (progetto && progetto.misure.length) {
+    values = [...new Set(progetto.misure.map(m => m[field]).filter(Boolean))];
+  }
+  return values;
+}
+
 // ---- Misure Infissi ----
 function renderMisure() {
   const ul = document.getElementById('lista-misure');
@@ -152,11 +273,34 @@ function renderMisure() {
   progetto.misure.forEach((m, i) => {
     const li = document.createElement('li');
     li.innerHTML = `
-      <b>${m.tipo}</b> | ${m.larghezza}x${m.altezza} mm | <i>${m.riferimento || '-'}</i> | Apertura: ${m.senso}
+      <b>${m.tipo}</b> | ${m.larghezza}x${m.altezza} mm | <i>${m.riferimento || '-'}</i> | ${m.senso} <small>[Cliente: ${progetto.cliente || '-'}, Cantiere: ${progetto.cantiere || '-'}]</small>
     `;
     ul.appendChild(li);
   });
 }
+// Suggerimenti per riferimento infisso
+document.getElementById('riferimento-infisso').addEventListener('focus', function() {
+  const progetto = getProgettoAttivo();
+  const suggerimenti = getSuggerimenti('riferimento', progetto);
+  if (suggerimenti.length) {
+    this.setAttribute('list', 'riferimento-suggerimenti');
+    let datalist = document.getElementById('riferimento-suggerimenti');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'riferimento-suggerimenti';
+      document.body.appendChild(datalist);
+    }
+    datalist.innerHTML = '';
+    suggerimenti.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      datalist.appendChild(opt);
+    });
+  }
+});
+// Suggerimenti per tipo infisso (già in select)
+// Suggerimenti per senso apertura (già in select)
+
 document.getElementById('misura-form').addEventListener('submit', e => {
   e.preventDefault();
   const progetto = getProgettoAttivo();
@@ -168,24 +312,31 @@ document.getElementById('misura-form').addEventListener('submit', e => {
   const senso = document.getElementById('senso-apertura').value.trim();
   if (tipo && larghezza && altezza && senso) {
     progetto.misure.push({tipo, larghezza, altezza, riferimento, senso});
+    if (!progetto.tipologie.includes(tipo)) progetto.tipologie.push(tipo);
+    if (!progetto.sensiApertura.includes(senso)) progetto.sensiApertura.push(senso);
     setStorage('progetti', progetti);
     renderMisure();
     e.target.reset();
   }
 });
 
-// ---- Bluetooth Stub ----
-document.getElementById('bluetooth-btn').addEventListener('click', async () => {
+// ---- Bluetooth: Pulsanti separati ----
+function acquisisciBluetooth(targetInput) {
   // STUB: mostra dialog, pronto per Web Bluetooth API
   alert(
     "Questa funzione permette di acquisire una misura da un distanziometro Bluetooth compatibile.\n" +
     "L'integrazione dipende dal modello del dispositivo.\n" +
     "Per dispositivi come Leica/Bosch, assicurati che siano supportati dalla Web Bluetooth API.\n" +
-    "Vuoi integrare uno specifico modello? Scrivilo nelle issue del progetto!"
+    "Al termine della connessione, la misura verrà inserita nel campo selezionato."
   );
-  // Esempio base per connessione:
-  // navigator.bluetooth.requestDevice({ filters: [{ services: ['battery_service'] }] })
-  // .then(device => { ... });
+  // Esempio: navigator.bluetooth.requestDevice...
+  // targetInput.value = valoreAcquisito;
+}
+document.getElementById('bluetooth-larghezza-btn').addEventListener('click', () => {
+  acquisisciBluetooth(document.getElementById('larghezza'));
+});
+document.getElementById('bluetooth-altezza-btn').addEventListener('click', () => {
+  acquisisciBluetooth(document.getElementById('altezza'));
 });
 
 // ---- Export ----
@@ -209,17 +360,13 @@ document.getElementById('export-pdf-btn').addEventListener('click', () => {
   doc.setFontSize(16);
   doc.text(`Rilievo Infissi - ${progetto.nome}`, 10, 15);
   doc.setFontSize(12);
-  doc.text('Clienti & Cantieri:', 10, 25);
-  progetto.clienti.forEach((c, i) => {
-    doc.text(`${i + 1}. ${c.nome} - ${c.cantiere}`, 12, 32 + (i * 7));
-  });
-  let startY = 32 + (progetto.clienti.length * 7) + 10;
-  doc.text('Misure Infissi:', 10, startY);
+  doc.text(`Cliente: ${progetto.cliente || '-'} - Cantiere: ${progetto.cantiere || '-'}`, 10, 25);
+  doc.text('Misure Infissi:', 10, 35);
   let headers = ['Tipo', 'Larghezza', 'Altezza', 'Riferimento', 'Senso apertura'];
   let data = progetto.misure.map(m =>
     [m.tipo, m.larghezza + ' mm', m.altezza + ' mm', m.riferimento || '-', m.senso]
   );
-  let rowY = startY + 7;
+  let rowY = 40;
   doc.setFontSize(10);
   doc.text(headers.join(' | '), 12, rowY);
   for (let i = 0; i < data.length; i++) {
@@ -231,11 +378,9 @@ document.getElementById('export-excel-btn').addEventListener('click', () => {
   const progetto = getProgettoAttivo();
   if (!progetto) return;
   const wb = XLSX.utils.book_new();
-  const clientiData = [['Nome', 'Cantiere']].concat(
-    progetto.clienti.map(c => [c.nome, c.cantiere])
-  );
+  const clientiData = [['Cliente', 'Cantiere'], [progetto.cliente || '-', progetto.cantiere || '-']];
   const clientiSheet = XLSX.utils.aoa_to_sheet(clientiData);
-  XLSX.utils.book_append_sheet(wb, clientiSheet, 'Clienti_Cantieri');
+  XLSX.utils.book_append_sheet(wb, clientiSheet, 'Cliente_Cantiere');
   const misureData = [['Tipo infisso', 'Larghezza (mm)', 'Altezza (mm)', 'Riferimento', 'Senso apertura']].concat(
     progetto.misure.map(m => [m.tipo, m.larghezza, m.altezza, m.riferimento, m.senso])
   );
@@ -246,9 +391,15 @@ document.getElementById('export-excel-btn').addEventListener('click', () => {
 
 // ---- Sync UI ----
 function aggiornaTutto() {
-  renderClienti();
-  renderMisure();
+  renderClientiDropdown();
   renderTipologieSelect();
+  renderSensiDropdown();
+  renderMisure();
   chiudiGestioneTipologie();
+  chiudiGestioneSensi();
+  chiudiClienti();
+}
+function chiudiClienti() {
+  document.getElementById('clienti').style.display = 'none';
 }
 aggiornaProgettiUI();
