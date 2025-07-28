@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rilievo Infissi</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- SheetJS CDN -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Rilievo Infissi</h1>
+  </header>
+  <main>
+    <section id="clienti">
+      <h2>Clienti & Cantieri</h2>
+      <form id="cliente-form">
+        <input type="text" id="nome-cliente" placeholder="Nome cliente" required>
+        <input type="text" id="nome-cantiere" placeholder="Cantiere" required>
+        <button type="submit">Aggiungi Cliente</button>
+      </form>
+      <ul id="lista-clienti"></ul>
+    </section>
+    <section id="misure">
+      <h2>Misure Infissi</h2>
+      <form id="misura-form">
+        <input type="text" id="tipo-infisso" placeholder="Tipo infisso" required>
+        <input type="number" id="larghezza" placeholder="Larghezza (mm)" required>
+        <input type="number" id="altezza" placeholder="Altezza (mm)" required>
+        <input type="text" id="senso-apertura" placeholder="Senso di apertura" required>
+        <button type="submit">Aggiungi Misura</button>
+      </form>
+      <ul id="lista-misure"></ul>
+    </section>
+  </main>
+  <footer>
+    <button id="export-btn">Export dati JSON</button>
+    <button id="export-pdf-btn">Export PDF</button>
+    <button id="export-excel-btn">Export Excel</button>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
