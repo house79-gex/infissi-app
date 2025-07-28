@@ -79,3 +79,74 @@ house79-gex
 ---
 
 Per suggerimenti e richieste di nuove funzionalità (anche modelli Bluetooth specifici), apri una Issue o una Pull Request!
+# Rilievo Infissi App
+
+...
+
+## Integrazione Bluetooth – Modelli supportati
+
+Questa app è pronta per connettersi con distanziometri Bluetooth come **Leica DISTO D5** e **Bosch GLM 50-27G** (e modelli compatibili con la Web Bluetooth API).
+
+### Come funziona
+
+- Due pulsanti separati (“📏L” per larghezza, “📏A” per altezza) in fase di inserimento misura.
+- Premi il pulsante, seleziona il dispositivo Bluetooth dalla lista.
+- La misura rilevata viene inserita automaticamente nel campo selezionato.
+
+### Implementazione tecnica
+
+> **Nota:** la connessione Bluetooth dipende dallo specifico protocollo del dispositivo.  
+> La funzione è predisposta, ma occorre inserire nel file `app.js` i codici UUID e la logica di parsing secondo il modello.
+
+#### Esempio base per Leica DISTO D5
+
+```javascript
+// Avvio connessione Bluetooth
+navigator.bluetooth.requestDevice({
+  filters: [{ namePrefix: 'DISTO' }], // oppure service UUID noto
+  optionalServices: ['battery_service', '<service-uuid-disto>']
+})
+.then(device => device.gatt.connect())
+.then(server => server.getPrimaryService('<service-uuid-disto>'))
+.then(service => service.getCharacteristic('<characteristic-uuid-disto>'))
+.then(characteristic => characteristic.readValue())
+.then(value => {
+  // Decodifica la misura dal DataView (consultare documentazione Leica per formato)
+  const misura = decodeLeicaDistoValue(value);
+  document.getElementById('larghezza').value = misura; // o 'altezza'
+});
+```
+
+#### Esempio base per Bosch GLM 50-27G
+
+```javascript
+navigator.bluetooth.requestDevice({
+  filters: [{ namePrefix: 'GLM' }],
+  optionalServices: ['battery_service', '<service-uuid-bosch>']
+})
+.then(device => device.gatt.connect())
+.then(server => server.getPrimaryService('<service-uuid-bosch>'))
+.then(service => service.getCharacteristic('<characteristic-uuid-bosch>'))
+.then(characteristic => characteristic.readValue())
+.then(value => {
+  // Decodifica la misura dal DataView (consultare documentazione Bosch per formato)
+  const misura = decodeBoschValue(value);
+  document.getElementById('altezza').value = misura; // o 'larghezza'
+});
+```
+
+**Importante:**  
+- Consulta la documentazione tecnica dei tuoi modelli per individuare i corretti service/characteristic UUID e il formato dei dati trasmessi.
+- Puoi trovare i dettagli tecnici nei manuali dei produttori o chiedere assistenza nelle community ufficiali.
+
+### Risorse utili
+
+- [Web Bluetooth API Reference (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)
+- [Leica DISTO Bluetooth Integration](https://developer.leica-geosystems.com/)
+- [Bosch GLM Bluetooth](https://www.bosch-professional.com/it/it/service/supporto-tecnico/)
+
+---
+
+Hai bisogno di aiuto per la decodifica dei dati o vuoi una demo di parsing?  
+Apri una Issue sul repository oppure mandami i dati raw acquisiti dal dispositivo per assistenza!
+
