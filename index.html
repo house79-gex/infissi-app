@@ -22,14 +22,16 @@
     </div>
   </header>
   <main>
-    <section id="clienti">
-      <h2>Clienti & Cantieri</h2>
-      <form id="cliente-form">
-        <input type="text" id="nome-cliente" placeholder="Nome cliente" required>
-        <input type="text" id="nome-cantiere" placeholder="Cantiere" required>
-        <button type="submit">Aggiungi Cliente</button>
+    <section id="clienti-cantieri">
+      <h2>Cliente & Cantiere</h2>
+      <form id="cliente-cantiere-form">
+        <select id="cliente-dropdown" required>
+          <option value="">Seleziona cliente</option>
+        </select>
+        <button type="button" id="gestisci-clienti-btn" title="Gestisci clienti">⚙️</button>
+        <input type="text" id="cantiere" placeholder="Cantiere" required>
+        <button type="submit">Associa Cliente/Cantiere</button>
       </form>
-      <ul id="lista-clienti"></ul>
     </section>
     <section id="misure">
       <h2>Misure Infissi</h2>
@@ -39,10 +41,14 @@
         </select>
         <button type="button" id="gestisci-tipologie-btn" title="Gestisci tipologie">⚙️</button>
         <input type="number" id="larghezza" placeholder="Larghezza (mm)" required>
+        <button type="button" id="bluetooth-larghezza-btn" title="Acquisisci larghezza da Bluetooth">📏L</button>
         <input type="number" id="altezza" placeholder="Altezza (mm)" required>
-        <input type="text" id="riferimento-infisso" placeholder="Riferimento (es. stanza, posizione)">
-        <input type="text" id="senso-apertura" placeholder="Senso di apertura" required>
-        <button type="button" id="bluetooth-btn">Acquisisci da Bluetooth</button>
+        <button type="button" id="bluetooth-altezza-btn" title="Acquisisci altezza da Bluetooth">📏A</button>
+        <input type="text" id="riferimento-infisso" placeholder="Riferimento (es: stanza)">
+        <select id="senso-apertura" required>
+          <option value="">Seleziona senso apertura</option>
+        </select>
+        <button type="button" id="gestisci-sensi-btn" title="Gestisci sensi apertura">⚙️</button>
         <button type="submit">Aggiungi Misura</button>
       </form>
       <ul id="lista-misure"></ul>
@@ -50,11 +56,31 @@
     <section id="tipologie" style="display:none;">
       <h2>Gestione Tipologie Infissi</h2>
       <form id="tipologia-form">
-        <input type="text" id="nuova-tipologia" placeholder="Nuova tipologia" required>
+        <input type="text" id="nuova-tipologia" placeholder="Nuova tipologia" required autocomplete="off">
         <button type="submit">Aggiungi</button>
       </form>
       <ul id="lista-tipologie"></ul>
       <button id="chiudi-tipologie-btn">Chiudi</button>
+    </section>
+    <section id="sensi" style="display:none;">
+      <h2>Gestione Sensi Apertura</h2>
+      <form id="senso-form">
+        <input type="text" id="nuovo-senso" placeholder="Nuovo senso apertura" required autocomplete="off">
+        <button type="submit">Aggiungi</button>
+      </form>
+      <ul id="lista-sensi"></ul>
+      <button id="chiudi-sensi-btn">Chiudi</button>
+    </section>
+    <section id="clienti" style="display:none;">
+      <h2>Gestione Clienti</h2>
+      <form id="cliente-form">
+        <input type="text" id="nome-cliente" placeholder="Nome cliente" required autocomplete="off">
+        <input type="text" id="telefono-cliente" placeholder="Telefono">
+        <input type="email" id="email-cliente" placeholder="Email">
+        <button type="submit">Aggiungi Cliente</button>
+      </form>
+      <ul id="lista-clienti"></ul>
+      <button id="chiudi-clienti-btn">Chiudi</button>
     </section>
   </main>
   <footer>
