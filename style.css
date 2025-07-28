@@ -11,7 +11,7 @@ header {
 header h1 {
   margin: 0 0 8px 0;
 }
-#progetto-wrapper {
+#cliente-cantiere-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -71,4 +71,22 @@ input, select {
   z-index: 10;
   min-width: 300px;
   box-shadow: 0 4px 16px #0003;
+}
+#tabella-misure {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 16px;
+  font-size: 1em;
+}
+#tabella-misure thead {
+  background: #005b96;
+  color: white;
+}
+#tabella-misure th, #tabella-misure td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+#tabella-misure tr:nth-child(even) {
+  background: #f0f7fa;
 }
