@@ -5,34 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rilievo Infissi</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
   <!-- jsPDF CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- SheetJS CDN -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <!-- docx.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.0.4/docx.min.js"></script>
 </head>
 <body>
   <header>
     <h1>Rilievo Infissi</h1>
-    <div id="progetto-wrapper">
-      <label for="progetto-select">Progetto attivo:</label>
-      <select id="progetto-select"></select>
-      <button id="new-progetto-btn">Nuovo Progetto</button>
-      <button id="delete-progetto-btn" title="Elimina progetto attivo">🗑️</button>
+    <div id="cliente-cantiere-wrapper">
+      <label for="cliente-select">Cliente:</label>
+      <select id="cliente-select"></select>
+      <button id="gestisci-clienti-btn" title="Gestisci clienti">⚙️</button>
+      <label for="cantiere-input">Cantiere:</label>
+      <input type="text" id="cantiere-input" placeholder="Nome cantiere">
+      <button id="associa-btn">Associa/Seleziona</button>
     </div>
   </header>
   <main>
-    <section id="clienti-cantieri">
-      <h2>Cliente & Cantiere</h2>
-      <form id="cliente-cantiere-form">
-        <select id="cliente-dropdown" required>
-          <option value="">Seleziona cliente</option>
-        </select>
-        <button type="button" id="gestisci-clienti-btn" title="Gestisci clienti">⚙️</button>
-        <input type="text" id="cantiere" placeholder="Cantiere" required>
-        <button type="submit">Associa Cliente/Cantiere</button>
-      </form>
-    </section>
     <section id="misure">
       <h2>Misure Infissi</h2>
       <form id="misura-form">
@@ -51,7 +43,7 @@
         <button type="button" id="gestisci-sensi-btn" title="Gestisci sensi apertura">⚙️</button>
         <button type="submit">Aggiungi Misura</button>
       </form>
-      <ul id="lista-misure"></ul>
+      <div id="tabella-misure-wrapper"></div>
     </section>
     <section id="tipologie" style="display:none;">
       <h2>Gestione Tipologie Infissi</h2>
@@ -87,6 +79,7 @@
     <button id="export-btn">Export dati JSON</button>
     <button id="export-pdf-btn">Export PDF</button>
     <button id="export-excel-btn">Export Excel</button>
+    <button id="export-docx-btn">Export Word</button>
   </footer>
   <script src="app.js"></script>
 </body>
