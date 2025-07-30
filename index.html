@@ -7,10 +7,12 @@
   <link rel="stylesheet" href="style.css">
   <!-- jsPDF CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- jsPDF autotable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.7.0/jspdf.plugin.autotable.min.js"></script>
   <!-- SheetJS CDN -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <!-- docx.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.0.4/docx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.0.4/build/index.min.js"></script>
 </head>
 <body>
   <header>
@@ -36,7 +38,8 @@
         <button type="button" id="bluetooth-larghezza-btn" title="Acquisisci larghezza da Bluetooth">📏L</button>
         <input type="number" id="altezza" placeholder="Altezza (mm)" required>
         <button type="button" id="bluetooth-altezza-btn" title="Acquisisci altezza da Bluetooth">📏A</button>
-        <input type="text" id="riferimento-infisso" placeholder="Riferimento (es: stanza)">
+        <input type="text" id="riferimento-infisso" placeholder="Riferimento (es: stanza)" list="riferimento-suggerimenti">
+        <datalist id="riferimento-suggerimenti"></datalist>
         <select id="senso-apertura" required>
           <option value="">Seleziona senso apertura</option>
         </select>
