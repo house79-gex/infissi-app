@@ -2,10 +2,18 @@
 function getStorage(key, fallback) { return JSON.parse(localStorage.getItem(key)) || fallback; }
 function setStorage(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
-// ---- Anagrafica clienti ----
+// ---- Cronologie globali ----
 let clientiAnagrafica = getStorage('clientiAnagrafica', []);
+let tipologieGlobali = getStorage('tipologieGlobali', []);
+let sensiAperturaGlobali = getStorage('sensiAperturaGlobali', [
+  "Dx a tirare", "Sx a tirare", "Dx a spingere", "Sx a spingere",
+  "Scorrere verso Dx", "Scorrere verso Sx", "Dx Anta Ribalta", "Wasistas"
+]);
+let riferimentiRecenti = getStorage('riferimentiRecenti', []);
+
 let clienteAttivo = getStorage('clienteAttivo', null);
 let cantiereAttivo = getStorage('cantiereAttivo', '');
+let misure = getStorage('misure', []);
 
 function saveClienteAnagrafica(nome, telefono, email) {
   if (!clientiAnagrafica.find(c => c.nome === nome)) {
@@ -66,7 +74,6 @@ document.getElementById('cliente-form').addEventListener('submit', e => {
     e.target.reset();
   }
 });
-
 document.getElementById('associa-btn').addEventListener('click', () => {
   const sel = document.getElementById('cliente-select');
   const cliente = sel.value;
@@ -80,8 +87,7 @@ document.getElementById('associa-btn').addEventListener('click', () => {
   }
 });
 
-// ---- Tipologie globali ----
-let tipologieGlobali = getStorage('tipologieGlobali', []);
+// ---- Tipologie ----
 function renderTipologieSelect() {
   const select = document.getElementById('tipo-infisso');
   select.innerHTML = '<option value="">Seleziona tipologia</option>';
@@ -131,11 +137,7 @@ document.getElementById('tipologia-form').addEventListener('submit', e => {
   }
 });
 
-// ---- Sensi apertura globali ----
-let sensiAperturaGlobali = getStorage('sensiAperturaGlobali', [
-  "Dx a tirare", "Sx a tirare", "Dx a spingere", "Sx a spingere",
-  "Scorrere verso Dx", "Scorrere verso Sx", "Dx Anta Ribalta", "Wasistas"
-]);
+// ---- Sensi apertura ----
 function renderSensiDropdown() {
   const select = document.getElementById('senso-apertura');
   select.innerHTML = '<option value="">Seleziona senso apertura</option>';
@@ -186,25 +188,15 @@ document.getElementById('senso-form').addEventListener('submit', e => {
 });
 
 // ---- Misure: cronologia e suggerimenti ----
-let misure = getStorage('misure', []);
-function salvaMisura(m) {
-  misure.push(m);
-  setStorage('misure', misure);
-  aggiornaTabellaMisure();
-}
-function getSuggerimenti(field) {
-  return [...new Set(misure.map(m => m[field]).filter(Boolean))];
-}
-
-// ---- Tabella misure ----
 function aggiornaTabellaMisure() {
   const wrapper = document.getElementById('tabella-misure-wrapper');
   if (!clienteAttivo || !cantiereAttivo) {
     wrapper.innerHTML = `<p style="color:#c00;">Seleziona prima cliente e cantiere!</p>`;
     return;
   }
-  const tabRows = misure
-    .filter(m => m.cliente === clienteAttivo && m.cantiere === cantiereAttivo)
+  const misureFiltrate = misure
+    .filter(m => m.cliente === clienteAttivo && m.cantiere === cantiereAttivo);
+  const tabRows = misureFiltrate
     .map((m, i) => `
       <tr>
         <td>${i + 1}</td>
@@ -214,7 +206,7 @@ function aggiornaTabellaMisure() {
         <td>${m.riferimento}</td>
         <td>${m.senso}</td>
         <td>
-          <button onclick="rimuoviMisura(${i})">🗑️</button>
+          <button onclick="rimuoviMisura(${m._idx})">🗑️</button>
         </td>
       </tr>
     `).join('');
@@ -237,32 +229,29 @@ function aggiornaTabellaMisure() {
     </table>
   `;
 }
+// Per rimozione precisa serve salvare l'indice originale della misura
+function recalcolaIndiciMisure() {
+  misure.forEach((m, idx) => m._idx = idx);
+}
 window.rimuoviMisura = function(idx) {
   misure.splice(idx, 1);
   setStorage('misure', misure);
+  recalcolaIndiciMisure();
   aggiornaTabellaMisure();
 };
 
 // Suggerimenti per riferimento infisso
-document.getElementById('riferimento-infisso').addEventListener('focus', function() {
-  const suggerimenti = getSuggerimenti('riferimento');
-  if (suggerimenti.length) {
-    this.setAttribute('list', 'riferimento-suggerimenti');
-    let datalist = document.getElementById('riferimento-suggerimenti');
-    if (!datalist) {
-      datalist = document.createElement('datalist');
-      datalist.id = 'riferimento-suggerimenti';
-      document.body.appendChild(datalist);
-    }
-    datalist.innerHTML = '';
-    suggerimenti.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s;
-      datalist.appendChild(opt);
-    });
-  }
-});
+function aggiornaSuggerimentiRiferimenti() {
+  const datalist = document.getElementById('riferimento-suggerimenti');
+  datalist.innerHTML = '';
+  riferimentiRecenti.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    datalist.appendChild(opt);
+  });
+}
 
+// Form misura
 document.getElementById('misura-form').addEventListener('submit', e => {
   e.preventDefault();
   if (!clienteAttivo || !cantiereAttivo) {
@@ -285,7 +274,12 @@ document.getElementById('misura-form').addEventListener('submit', e => {
       setStorage('sensiAperturaGlobali', sensiAperturaGlobali);
       renderSensiDropdown();
     }
-    salvaMisura({
+    if (riferimento && !riferimentiRecenti.includes(riferimento)) {
+      riferimentiRecenti.push(riferimento);
+      setStorage('riferimentiRecenti', riferimentiRecenti);
+      aggiornaSuggerimentiRiferimenti();
+    }
+    misure.push({
       cliente: clienteAttivo,
       cantiere: cantiereAttivo,
       tipo,
@@ -294,6 +288,9 @@ document.getElementById('misura-form').addEventListener('submit', e => {
       riferimento,
       senso
     });
+    setStorage('misure', misure);
+    recalcolaIndiciMisure();
+    aggiornaTabellaMisure();
     e.target.reset();
   }
 });
@@ -305,7 +302,6 @@ function acquisisciBluetooth(targetInput, tipo) {
     `L'integrazione dipende dal modello del dispositivo (es. Leica DISTO, Bosch GLM).\n` +
     `Al termine della connessione, la misura verrà inserita nel campo selezionato.`
   );
-  // Esempio di implementazione per Leica/Bosch nel README.
   // targetInput.value = valoreAcquisito;
 }
 document.getElementById('bluetooth-larghezza-btn').addEventListener('click', () => {
@@ -331,92 +327,96 @@ document.getElementById('export-btn').addEventListener('click', () => {
   a.click();
 });
 
-// PDF tabella ordinata
+// PDF tabella ordinata con jsPDF-autotable
 document.getElementById('export-pdf-btn').addEventListener('click', () => {
   if (!clienteAttivo || !cantiereAttivo) return;
   const misureFiltrate = misure.filter(m => m.cliente === clienteAttivo && m.cantiere === cantiereAttivo);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFontSize(16);
-  doc.text(`Rilievo Infissi`, 10, 15);
+  doc.text(`Rilievo Infissi`, 10, 10);
   doc.setFontSize(12);
-  doc.text(`Cliente: ${clienteAttivo} | Cantiere: ${cantiereAttivo}`, 10, 25);
+  doc.text(`Cliente: ${clienteAttivo} | Cantiere: ${cantiereAttivo}`, 10, 18);
 
   // Tabella ordinata
-  const headers = ['#', 'Tipologia', 'Larghezza', 'Altezza', 'Riferimento', 'Senso Apertura'];
-  let rowY = 35;
-  doc.setFontSize(10);
-  doc.text(headers.join(' | '), 10, rowY);
-  misureFiltrate.forEach((m, i) => {
-    const row = [
-      i+1,
-      m.tipo,
-      m.larghezza,
-      m.altezza,
-      m.riferimento,
-      m.senso
-    ];
-    doc.text(row.join(' | '), 10, rowY + 6 + (i * 6));
+  const headers = [['#', 'Tipologia', 'Larghezza', 'Altezza', 'Riferimento', 'Senso Apertura']];
+  const body = misureFiltrate.map((m, i) => [
+    i+1, m.tipo, m.larghezza, m.altezza, m.riferimento, m.senso
+  ]);
+  doc.autoTable({
+    head: headers,
+    body: body,
+    startY: 25,
+    theme: 'grid',
+    styles: { cellPadding: 2, fontSize: 10 }
   });
   doc.save('rilievo-infissi.pdf');
 });
 
-// Excel
+// Excel: larghezza colonne adattiva
 document.getElementById('export-excel-btn').addEventListener('click', () => {
   if (!clienteAttivo || !cantiereAttivo) return;
   const misureFiltrate = misure.filter(m => m.cliente === clienteAttivo && m.cantiere === cantiereAttivo);
-  const wb = XLSX.utils.book_new();
   const clientiData = [['Cliente', 'Cantiere'], [clienteAttivo, cantiereAttivo]];
   const clientiSheet = XLSX.utils.aoa_to_sheet(clientiData);
-  XLSX.utils.book_append_sheet(wb, clientiSheet, 'Cliente_Cantiere');
+
   const misureData = [['#', 'Tipologia', 'Larghezza (mm)', 'Altezza (mm)', 'Riferimento', 'Senso Apertura']]
     .concat(misureFiltrate.map((m, i) => [i+1, m.tipo, m.larghezza, m.altezza, m.riferimento, m.senso]));
   const misureSheet = XLSX.utils.aoa_to_sheet(misureData);
+
+  // Adattamento larghezza colonne
+  misureSheet['!cols'] = misureData[0].map((_, colIdx) => {
+    const maxLen = Math.max(...misureData.map(row => (row[colIdx] ? row[colIdx].toString().length : 0)));
+    return { wch: maxLen + 2 };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, clientiSheet, 'Cliente_Cantiere');
   XLSX.utils.book_append_sheet(wb, misureSheet, 'Misure');
   XLSX.writeFile(wb, 'rilievo-infissi.xlsx');
 });
 
-// Word DOCX tabella ordinata
+// Word DOCX tabella ordinata con docx.js
 document.getElementById('export-docx-btn').addEventListener('click', () => {
   if (!clienteAttivo || !cantiereAttivo) return;
   const misureFiltrate = misure.filter(m => m.cliente === clienteAttivo && m.cantiere === cantiereAttivo);
-  const doc = new window.docx.Document();
 
-  doc.addSection({
-    children: [
-      new window.docx.Paragraph({
-        children: [
-          new window.docx.TextRun({ text: "Rilievo Infissi", bold: true, size: 32 }),
-        ],
-        spacing: { after: 200 }
-      }),
-      new window.docx.Paragraph({
-        children: [
-          new window.docx.TextRun({ text: `Cliente: ${clienteAttivo} | Cantiere: ${cantiereAttivo}`, size: 24 }),
-        ],
-        spacing: { after: 200 }
-      }),
-      new window.docx.Table({
-        rows: [
-          new window.docx.TableRow({
-            children: [
-              'N', 'Tipologia', 'Larghezza', 'Altezza', 'Riferimento', 'Senso Apertura'
-            ].map(h => new window.docx.TableCell({
-              children: [new window.docx.Paragraph({ text: h, bold: true })]
-            }))
-          }),
-          ...misureFiltrate.map((m, i) =>
+  const doc = new window.docx.Document({
+    sections: [{
+      properties: {},
+      children: [
+        new window.docx.Paragraph({
+          children: [
+            new window.docx.TextRun({ text: "Rilievo Infissi", bold: true, size: 32 }),
+          ],
+        }),
+        new window.docx.Paragraph({
+          children: [
+            new window.docx.TextRun({ text: `Cliente: ${clienteAttivo} | Cantiere: ${cantiereAttivo}`, size: 24 }),
+          ],
+        }),
+        new window.docx.Table({
+          rows: [
             new window.docx.TableRow({
               children: [
-                i+1, m.tipo, m.larghezza, m.altezza, m.riferimento, m.senso
-              ].map(val => new window.docx.TableCell({
-                children: [new window.docx.Paragraph({ text: String(val) })]
+                'N', 'Tipologia', 'Larghezza', 'Altezza', 'Riferimento', 'Senso Apertura'
+              ].map(h => new window.docx.TableCell({
+                children: [new window.docx.Paragraph({ text: h, bold: true })]
               }))
-            })
-          )
-        ]
-      })
-    ]
+            }),
+            ...misureFiltrate.map((m, i) =>
+              new window.docx.TableRow({
+                children: [
+                  i+1, m.tipo, m.larghezza, m.altezza, m.riferimento, m.senso
+                ].map(val => new window.docx.TableCell({
+                  children: [new window.docx.Paragraph({ text: String(val) })]
+                }))
+              })
+            )
+          ]
+        })
+      ]
+    }]
   });
 
   window.docx.Packer.toBlob(doc).then(blob => {
@@ -432,6 +432,8 @@ function aggiornaTutto() {
   renderClientiDropdown();
   renderTipologieSelect();
   renderSensiDropdown();
+  aggiornaSuggerimentiRiferimenti();
+  recalcolaIndiciMisure();
   aggiornaTabellaMisure();
   chiudiGestioneTipologie();
   chiudiGestioneSensi();
